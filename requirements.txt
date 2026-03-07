@@ -1,0 +1,7 @@
+
+transformers==4.40.2
+torch==2.3.0
+
+# HTTP server & CORS (needed for --server mode)
+flask==3.0.3
+flask-cors==4.0.1
