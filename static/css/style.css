@@ -1,0 +1,46 @@
+:root {
+    --primary-blue: #00d4ff;
+    --bg-dark: #0b0e11;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    background-color: var(--bg-dark);
+    font-family: 'Inter', sans-serif;
+    color: white;
+}
+
+/* Glassmorphism Card Style */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Glowing text for KPIs */
+.kpi-value {
+    color: var(--primary-blue);
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    font-weight: bold;
+}
+
+#map {
+    height: 100vh;
+    width: 100%;
+    position: absolute;
+    z-index: 0;
+}
+
+.ui-overlay {
+    position: relative;
+    z-index: 10;
+    pointer-events: none; /* Allows clicking through to map */
+}
+
+.ui-overlay > * {
+    pointer-events: auto; /* Re-enables clicking for buttons/chat */
+}
