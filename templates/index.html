@@ -141,21 +141,27 @@
                     </div>
                 </div>
 
-                <div class="col-md-2 ms-auto">
-                    <div class="glass-panel kpi-card">
-                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Est. ROI Increase</small>
-                        <p class="kpi-value">+$142.5k</p>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">CO2 Optimization</small>
-                        <p class="kpi-value text-success">88.4%</p>
-                    </div>
-                    <div class="glass-panel kpi-card">
-                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Active Fleet</small>
-                        <p class="kpi-value">1,204</p>
-                    </div>
+                
+                                <div class="glass-panel kpi-card">
+                    <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Est. ROI Increase</small>
+                    <p class="kpi-value" id="roi-value">+$0</p>
                 </div>
-
+                <div class="glass-panel kpi-card">
+                    <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">CO2 Optimization</small>
+                    <p class="kpi-value text-success" id="co2-value">0%</p>
+                </div>
+                <div class="glass-panel kpi-card">
+                <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Active Fleet</small>
+                <p class="kpi-value" id="fleet-value">1,204</p> </div>
+<div class="mt-4 pt-3 border-top border-secondary">
+    <p class="text-secondary text-center mb-2" style="font-size: 0.75rem;">READY TO DEPLOY LORRI?</p>
+    <button class="btn btn-outline-info w-100 mb-2" style="border-radius: 8px; font-weight: 600; letter-spacing: 1px;">
+        📥 DOWNLOAD LANE REPORT
+    </button>
+    <button class="btn btn-ai w-100 shadow-lg" style="border-radius: 8px; font-weight: 600; letter-spacing: 1px;">
+        🚀 BOOK ENTERPRISE DEMO
+    </button>
+</div>
             </div>
         </div>
     </div>
@@ -181,19 +187,35 @@
         }).addTo(map);
 
         // API Interaction Function
+        // API Interaction Function
+// API Interaction Function
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
             const message = input.value;
             if (!message) return;
 
-            // Update UI with User Message
+            // 1. Update UI with User Message
             chatBox.innerHTML += `<div class="mb-2 text-end"><small class="text-secondary">YOU:</small><div class="p-2 rounded bg-primary text-black d-inline-block">${message}</div></div>`;
             input.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Fetch from Flask Backend
+            // 2. ADD THE LOADING SPINNER (NEW)
+            const loadingHtml = `
+                <div id="loading-indicator" class="mb-2">
+                    <small class="text-info">LORRI:</small>
+                    <div class="p-2 rounded bg-dark border border-secondary text-secondary">
+                        <em>Calculating optimal lanes... <span class="spinner-border spinner-border-sm text-info ms-2" role="status"></span></em>
+                    </div>
+                </div>`;
+            chatBox.innerHTML += loadingHtml;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            // Lock the input box so they can't spam the enter key while it loads
+            input.disabled = true;
+
             try {
+                // Fetch from Flask Backend
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -201,22 +223,36 @@
                 });
                 const data = await response.json();
 
-                // LORRI's Response
+                // 3. REMOVE THE LOADING SPINNER (NEW)
+                document.getElementById('loading-indicator').remove();
+                input.disabled = false;
+                input.focus(); // Put the cursor back in the box
+
+                // Update Chat with Asim's LLM Response
                 chatBox.innerHTML += `<div class="mb-2"><small class="text-info">LORRI:</small><div class="p-2 rounded bg-dark border border-info">${data.message}</div></div>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
 
-                // Move Map if Coordinates Exist
-                if (data.coords) {
-                    map.flyTo(data.coords, 8, { animate: true, duration: 2.5 });
-                    L.circleMarker(data.coords, {
+                // Update Dashboard Numbers
+                document.getElementById('roi-value').innerText = `+$${data.roi_calc.cost_saved_usd.toLocaleString()}`;
+                document.getElementById('co2-value').innerText = `${data.roi_calc.sustainability_score_improvement}%`;
+                document.getElementById('fleet-value').innerText = data.roi_calc.active_fleet.toLocaleString();
+
+                // Move Map
+                if (data.map_action) {
+                    const latLng = [data.map_action.lat, data.map_action.lon];
+                    map.flyTo(latLng, data.map_action.zoom, { animate: true, duration: 2.5 });
+                    
+                    L.circleMarker(latLng, {
                         radius: 10,
                         fillColor: "#00d4ff",
                         color: "#fff",
                         fillOpacity: 0.5
-                    }).addTo(map).bindPopup(`AI Focus: ${data.city}`).openPopup();
+                    }).addTo(map).bindPopup(`AI Focus: ${data.map_action.region}`).openPopup();
                 }
             } catch (err) {
                 console.error("Connection to Flask failed.", err);
+                document.getElementById('loading-indicator').innerHTML = `<span class="text-danger">Error connecting to intelligence grid.</span>`;
+                input.disabled = false;
             }
         }
     </script>

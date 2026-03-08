@@ -1,15 +1,8 @@
 from flask import Flask, render_template, request, jsonify
+from modules.intent_processor import get_map_and_roi_data
+from modules.ai_chat_module import generate_lorri_response
 
 app = Flask(__name__)
-
-# Mock Database for the "Intelligence Grid"
-PORT_COORDINATES = {
-    "shanghai": [31.2304, 121.4737],
-    "ningbo": [29.8683, 121.5440],
-    "singapore": [1.3521, 103.8198],
-    "rotterdam": [51.9225, 4.4792],
-    "los angeles": [34.0522, -118.2437]
-}
 
 @app.route('/')
 def index():
@@ -17,29 +10,39 @@ def index():
 
 @app.route('/ask', methods=['POST'])
 def ask_lorri():
-    user_message = request.json.get("message", "").lower()
+    user_message = request.json.get("message", "")
     
-    # Logic: Search for port names in the user's message
-    target_city = None
-    for city in PORT_COORDINATES:
-        if city in user_message:
-            target_city = city
-            break
-            
-    if target_city:
-        coords = PORT_COORDINATES[target_city]
-        response_text = f"Rerouting intelligence grid to {target_city.title()}. Optimizing for fuel efficiency..."
-        return jsonify({
-            "status": "success",
-            "message": response_text,
-            "coords": coords,
-            "city": target_city.title()
-        })
+    # 1. Run Raj's NER & ROI Logic
+    map_data, roi_data = get_map_and_roi_data(user_message)
     
+    # 2. Run Asim's DialoGPT Logic (The conversational intro)
+    chat_reply = generate_lorri_response(user_message)
+    
+    # 3. GENERATE THE DYNAMIC EXPLANATION (NEW)
+    # This translates the math into a readable sentence so the user understands the UI.
+    intent_str = roi_data['primary_intent'].upper()
+    region_str = map_data['region']
+    savings = f"${roi_data['cost_saved_usd']:,}"
+    eco = f"{roi_data['sustainability_score_improvement']}%"
+    fleet = f"{roi_data['active_fleet']:,}"
+    
+    explanation = (
+        f"<br><br>"
+        f"<small class='text-secondary'>⚡ SYSTEM REPORT:</small><br>"
+        f"<em>I have locked the map to the <strong>{region_str}</strong>. "
+        f"Based on your request, my primary optimization target is <strong>{intent_str}</strong>. "
+        f"By analyzing {fleet} active vessels in this lane, I am projecting a savings of <strong>{savings}</strong> "
+        f"while improving our carbon footprint by <strong>{eco}</strong>.</em>"
+    )
+    
+    # Combine Asim's chat with the dynamic system report
+    final_message = chat_reply + explanation
+    
+    # 4. Send everything back to Esha's UI
     return jsonify({
-        "status": "unknown",
-        "message": "I'm monitoring the global grid. Please specify a port (e.g., Singapore).",
-        "coords": None
+        "message": final_message,
+        "map_action": map_data,
+        "roi_calc": roi_data
     })
 
 if __name__ == '__main__':
