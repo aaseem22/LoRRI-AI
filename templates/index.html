@@ -36,7 +36,7 @@
             z-index: 0;
         }
 
-        /* UI Layer (Pass-through clicks to map) */
+        /* UI Layer */
         .ui-overlay {
             position: absolute;
             top: 0;
@@ -44,22 +44,17 @@
             width: 100%;
             height: 100%;
             z-index: 10;
-            pointer-events: none; 
             padding: 20px;
         }
 
-         /* Let clicks pass through the invisible grid */
-        .ui-overlay, .container-fluid, .row, .col-md-3, .col-md-2 {
+        /* Let clicks pass through the invisible grid to the map */
+        .ui-overlay, .container-fluid, .row, .col-left, .col-right {
             pointer-events: none;
         }
 
         /* ONLY the visible glass panels and chat box should catch mouse clicks */
         .glass-panel {
             pointer-events: auto;
-        }
-
-        /* Glassmorphism Panels */
-        .glass-panel {
             background: var(--glass-bg);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
@@ -68,6 +63,7 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
+        /* KPI Card Styling */
         .kpi-card {
             padding: 15px;
             margin-bottom: 15px;
@@ -82,8 +78,9 @@
             margin: 0;
         }
 
+        /* Chat UI Styling */
         .chat-container {
-            height: 500px;
+            height: 75vh;
             display: flex;
             flex-direction: column;
         }
@@ -92,12 +89,14 @@
             flex-grow: 1;
             overflow-y: auto;
             font-size: 0.9rem;
-            padding-right: 5px;
+            padding-right: 10px;
+            scroll-behavior: smooth;
         }
 
-        /* Scrollbar Styling */
-        #chat-box::-webkit-scrollbar { width: 4px; }
-        #chat-box::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+        /* Custom Scrollbar */
+        #chat-box::-webkit-scrollbar { width: 6px; }
+        #chat-box::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        #chat-box::-webkit-scrollbar-thumb { background: var(--primary-blue); border-radius: 10px; opacity: 0.5;}
 
         .input-group input {
             background: rgba(0,0,0,0.3) !important;
@@ -112,9 +111,7 @@
             font-weight: 600;
         }
 
-        .btn-ai:hover {
-            background: #00a8cc;
-        }
+        .btn-ai:hover { background: #00a8cc; }
     </style>
 </head>
 <body>
@@ -122,11 +119,11 @@
     <div id="map"></div>
 
     <div class="ui-overlay">
-        <div class="container-fluid h-100">
+        <div class="container-fluid h-100 pt-3">
             <div class="row h-100">
                 
-                <div class="col-md-3">
-                    <div class="glass-panel p-3 chat-container">
+                <div class="col-md-4 col-lg-3 col-left d-flex flex-column">
+                    <div class="glass-panel p-3 chat-container mb-3">
                         <div class="d-flex align-items-center mb-3">
                             <div style="width: 10px; height: 10px; background: #00ff00; border-radius: 50%; margin-right: 10px; box-shadow: 0 0 5px #00ff00;"></div>
                             <h5 class="m-0 text-uppercase tracking-widest" style="letter-spacing: 2px;">LORRI.AI</h5>
@@ -136,34 +133,50 @@
                         <div id="chat-box" class="mb-3">
                             <div class="mb-2">
                                 <small class="text-info">LORRI:</small>
-                                <div class="p-2 rounded bg-dark border border-secondary">Intelligence grid online. Systems monitoring Shanghai - Ningbo corridor. How can I assist with rerouting?</div>
+                                <div class="p-2 rounded bg-dark border border-secondary">Intelligence grid online. Systems monitoring global corridors. How can I assist with your freight optimization today?</div>
                             </div>
                         </div>
 
-                        <div class="input-group">
-                            <input type="text" id="user-input" class="form-control" placeholder="Type a port (e.g. Singapore)..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <div class="input-group mt-auto">
+                            <input type="text" id="user-input" class="form-control" placeholder="Type a prompt (e.g. cheapest rates out of Mumbai)..." onkeypress="if(event.key === 'Enter') sendMessage()">
                             <button class="btn btn-ai px-3" onclick="sendMessage()">→</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-2" style="border-left: 3px solid #00d4ff;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-success text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">
+                                <span class="spinner-grow spinner-grow-sm text-success me-1" role="status" style="width: 0.5rem; height: 0.5rem;"></span>
+                                Autonomous Grid Active
+                            </small>
+                        </div>
+                        <div id="agent-ticker" class="text-secondary mt-1" style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;">
+                            > Initializing global procurement agents...
                         </div>
                     </div>
                 </div>
 
-                
-                                <div class="glass-panel kpi-card">
-                    <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Est. ROI Increase</small>
-                    <p class="kpi-value" id="roi-value">+$0</p>
+                <div class="col-md-3 col-lg-2 col-right ms-auto">
+                    <div class="glass-panel kpi-card">
+                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Est. ROI Increase</small>
+                        <p class="kpi-value" id="roi-value">+$0</p>
+                    </div>
+                    <div class="glass-panel kpi-card">
+                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">CO2 Optimization</small>
+                        <p class="kpi-value text-success" id="co2-value">0%</p>
+                    </div>
+                    <div class="glass-panel kpi-card mb-4">
+                        <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Active Fleet</small>
+                        <p class="kpi-value" id="fleet-value">0</p>
+                    </div>
+
+                    <div class="glass-panel p-3 text-center">
+                        <p class="text-secondary mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">READY TO DEPLOY LORRI?</p>
+                        <button class="btn btn-outline-info w-100 mb-2 py-2" style="font-size: 0.8rem; font-weight: 600;">📥 DOWNLOAD REPORT</button>
+                        <button class="btn btn-ai w-100 shadow-lg py-2" style="font-size: 0.8rem; font-weight: 600;">🚀 BOOK DEMO</button>
+                    </div>
                 </div>
-                <div class="glass-panel kpi-card">
-                    <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">CO2 Optimization</small>
-                    <p class="kpi-value text-success" id="co2-value">0%</p>
-                </div>
-                <div class="glass-panel kpi-card">
-                <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Active Fleet</small>
-                <p class="kpi-value" id="fleet-value">1,204</p> </div>
-<div class="mt-4 pt-3 border-top border-secondary">
-    <button class="btn btn-outline-info w-100 mb-2" style="border-radius: 8px; font-weight: 600; letter-spacing: 1px;">
-        📥 DOWNLOAD LANE REPORT
-    </button>
-</div>
+
             </div>
         </div>
     </div>
@@ -174,23 +187,13 @@
         var map = L.map('map', {
             zoomControl: false,
             attributionControl: false
-        }).setView([31.2304, 121.4737], 6);
+        }).setView([20.0, 0.0], 2); // Default to Global View
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19
         }).addTo(map);
 
-        // Initial Route (Shanghai to Ningbo)
-        var route = L.polyline([[31.2304, 121.4737], [29.8683, 121.5440]], {
-            color: '#00d4ff',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: '8, 8'
-        }).addTo(map);
-
         // API Interaction Function
-        // API Interaction Function
-// API Interaction Function
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
@@ -202,7 +205,7 @@
             input.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // 2. ADD THE LOADING SPINNER (NEW)
+            // 2. Add Loading Spinner
             const loadingHtml = `
                 <div id="loading-indicator" class="mb-2">
                     <small class="text-info">LORRI:</small>
@@ -212,8 +215,6 @@
                 </div>`;
             chatBox.innerHTML += loadingHtml;
             chatBox.scrollTop = chatBox.scrollHeight;
-            
-            // Lock the input box so they can't spam the enter key while it loads
             input.disabled = true;
 
             try {
@@ -225,55 +226,48 @@
                 });
                 const data = await response.json();
 
-                // 3. REMOVE THE LOADING SPINNER (NEW)
+                // 3. Remove Loading Spinner
                 document.getElementById('loading-indicator').remove();
                 input.disabled = false;
-                input.focus(); // Put the cursor back in the box
+                input.focus(); 
 
-                // Update Chat with Asim's LLM Response
+                // Update Chat with LLM Response
                 chatBox.innerHTML += `<div class="mb-2"><small class="text-info">LORRI:</small><div class="p-2 rounded bg-dark border border-info">${data.message}</div></div>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
 
-                // Update Dashboard Numbers
+                // Update Dashboard KPI Numbers
                 document.getElementById('roi-value').innerText = `+$${data.roi_calc.cost_saved_usd.toLocaleString()}`;
                 document.getElementById('co2-value').innerText = `${data.roi_calc.sustainability_score_improvement}%`;
                 document.getElementById('fleet-value').innerText = data.roi_calc.active_fleet.toLocaleString();
 
-                // Move Map
                 // Move Map and Draw Route
                 if (data.map_action) {
                     const destinationLatLng = [data.map_action.lat, data.map_action.lon];
                     
-                    // 1. Fly to the new destination
                     map.flyTo(destinationLatLng, data.map_action.zoom, { animate: true, duration: 2.5 });
                     
-                    // 2. Clear any old routes/pins from the map so it doesn't get cluttered
                     map.eachLayer((layer) => {
                         if (layer instanceof L.Polyline || layer instanceof L.CircleMarker) {
                             map.removeLayer(layer);
                         }
                     });
 
-                    // 3. Define a "Global HQ" or Origin point (e.g., Shanghai Port)
-                    const originLatLng = [31.2222, 121.4581]; 
+                    const originLatLng = [31.2222, 121.4581]; // Shanghai HQ
 
-                    // 4. Draw the glowing freight lane (Point A to Point B)
                     if (data.map_action.region !== "Global Dashboard") {
                         L.polyline([originLatLng, destinationLatLng], {
                             color: '#00d4ff',
                             weight: 3,
                             opacity: 0.7,
-                            dashArray: '10, 10', // Makes it look like an active shipping lane
+                            dashArray: '10, 10', 
                             lineJoin: 'round'
                         }).addTo(map);
 
-                        // Drop a pin on the Origin (Shanghai)
                         L.circleMarker(originLatLng, {
                             radius: 6, fillColor: "#ff0055", color: "#fff", fillOpacity: 0.8
                         }).addTo(map).bindPopup("Origin: Shanghai HQ");
                     }
 
-                    // 5. Drop the main pin on the AI's chosen Destination
                     L.circleMarker(destinationLatLng, {
                         radius: 10,
                         fillColor: "#00d4ff",
@@ -287,6 +281,21 @@
                 input.disabled = false;
             }
         }
+
+        // Background Heartbeat for Autonomous Agents
+        setInterval(async () => {
+            try {
+                const response = await fetch('/live_status');
+                const data = await response.json();
+                
+                const ticker = document.getElementById('agent-ticker');
+                const agentString = `> ${data.activity.agent} is ${data.activity.activity} [${data.activity.impact}] | ⚠️ ${data.freight_event.event.toUpperCase()} in ${data.freight_event.region}`;
+                
+                ticker.innerHTML = agentString;
+            } catch (err) {
+                // Fail silently in the background if the server is busy
+            }
+        }, 3500); 
     </script>
 </body>
 </html>

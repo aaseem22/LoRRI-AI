@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from modules.intent_processor import get_map_and_roi_data
 from modules.ai_chat_module import generate_lorri_response
-
+from modules.agent_simulators import generate_system_snapshot
 app = Flask(__name__)
 
 @app.route('/')
@@ -44,6 +44,12 @@ def ask_lorri():
         "map_action": map_data,
         "roi_calc": roi_data
     })
+
+@app.route('/live_status', methods=['GET'])
+def live_status():
+    """Provides a continuous background feed of autonomous agent activity."""
+    snapshot = generate_system_snapshot()
+    return jsonify(snapshot)
 
 if __name__ == '__main__':
     app.run(debug=True)
