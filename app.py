@@ -52,4 +52,5 @@ def live_status():
     return jsonify(snapshot)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Changed from standard port to Hugging Face's required port 7860
+    app.run(host='0.0.0.0', port=7860)
