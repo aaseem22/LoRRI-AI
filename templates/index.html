@@ -48,8 +48,14 @@
             padding: 20px;
         }
 
-        .ui-overlay > * {
-            pointer-events: auto; /* Enable clicks for UI elements */
+         /* Let clicks pass through the invisible grid */
+        .ui-overlay, .container-fluid, .row, .col-md-3, .col-md-2 {
+            pointer-events: none;
+        }
+
+        /* ONLY the visible glass panels and chat box should catch mouse clicks */
+        .glass-panel {
+            pointer-events: auto;
         }
 
         /* Glassmorphism Panels */
@@ -154,12 +160,8 @@
                 <small class="text-secondary text-uppercase" style="font-size: 0.7rem;">Active Fleet</small>
                 <p class="kpi-value" id="fleet-value">1,204</p> </div>
 <div class="mt-4 pt-3 border-top border-secondary">
-    <p class="text-secondary text-center mb-2" style="font-size: 0.75rem;">READY TO DEPLOY LORRI?</p>
     <button class="btn btn-outline-info w-100 mb-2" style="border-radius: 8px; font-weight: 600; letter-spacing: 1px;">
         📥 DOWNLOAD LANE REPORT
-    </button>
-    <button class="btn btn-ai w-100 shadow-lg" style="border-radius: 8px; font-weight: 600; letter-spacing: 1px;">
-        🚀 BOOK ENTERPRISE DEMO
     </button>
 </div>
             </div>
@@ -238,15 +240,45 @@
                 document.getElementById('fleet-value').innerText = data.roi_calc.active_fleet.toLocaleString();
 
                 // Move Map
+                // Move Map and Draw Route
                 if (data.map_action) {
-                    const latLng = [data.map_action.lat, data.map_action.lon];
-                    map.flyTo(latLng, data.map_action.zoom, { animate: true, duration: 2.5 });
+                    const destinationLatLng = [data.map_action.lat, data.map_action.lon];
                     
-                    L.circleMarker(latLng, {
+                    // 1. Fly to the new destination
+                    map.flyTo(destinationLatLng, data.map_action.zoom, { animate: true, duration: 2.5 });
+                    
+                    // 2. Clear any old routes/pins from the map so it doesn't get cluttered
+                    map.eachLayer((layer) => {
+                        if (layer instanceof L.Polyline || layer instanceof L.CircleMarker) {
+                            map.removeLayer(layer);
+                        }
+                    });
+
+                    // 3. Define a "Global HQ" or Origin point (e.g., Shanghai Port)
+                    const originLatLng = [31.2222, 121.4581]; 
+
+                    // 4. Draw the glowing freight lane (Point A to Point B)
+                    if (data.map_action.region !== "Global Dashboard") {
+                        L.polyline([originLatLng, destinationLatLng], {
+                            color: '#00d4ff',
+                            weight: 3,
+                            opacity: 0.7,
+                            dashArray: '10, 10', // Makes it look like an active shipping lane
+                            lineJoin: 'round'
+                        }).addTo(map);
+
+                        // Drop a pin on the Origin (Shanghai)
+                        L.circleMarker(originLatLng, {
+                            radius: 6, fillColor: "#ff0055", color: "#fff", fillOpacity: 0.8
+                        }).addTo(map).bindPopup("Origin: Shanghai HQ");
+                    }
+
+                    // 5. Drop the main pin on the AI's chosen Destination
+                    L.circleMarker(destinationLatLng, {
                         radius: 10,
                         fillColor: "#00d4ff",
                         color: "#fff",
-                        fillOpacity: 0.5
+                        fillOpacity: 0.8
                     }).addTo(map).bindPopup(`AI Focus: ${data.map_action.region}`).openPopup();
                 }
             } catch (err) {
